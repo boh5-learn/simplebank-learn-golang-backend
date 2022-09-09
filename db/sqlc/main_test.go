@@ -10,7 +10,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var testQueries *db.Queries
+var (
+	testQueries *db.Queries
+	testDB      *sql.DB
+)
 
 const (
 	dbDriver = "postgres"
@@ -18,12 +21,15 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	conn, err := sql.Open(dbDriver, dbSource)
+	var err error
+
+	// 这里不能用 := 语法，否则 testDB 是新初始化的局部变量，全局变量 testDB 是 nil
+	testDB, err = sql.Open(dbDriver, dbSource)
 	if err != nil {
 		log.Fatal("cannot connect to db: ", err)
 	}
 
-	testQueries = db.New(conn)
+	testQueries = db.New(testDB)
 
 	os.Exit(m.Run())
 }
