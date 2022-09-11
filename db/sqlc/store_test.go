@@ -77,5 +77,18 @@ func TestTransferTx(t *testing.T) {
 		require.NoError(t, err)
 
 		// TODO: check accounts' balance
+		fromAccount := result.FromAccount
+		require.NotEmpty(t, fromAccount)
+		require.Equal(t, fromAccount.Balance, account1.Balance-int64(i+1)*amount)
+		fromAccountDB, err := store.GetAccount(context.Background(), account1.ID)
+		require.NoError(t, err)
+		require.Equal(t, fromAccount.Balance, fromAccountDB.Balance)
+
+		toAccount := result.ToAccount
+		require.NotEmpty(t, toAccount)
+		require.Equal(t, toAccount.Balance, account2.Balance+int64(i+1)*amount)
+		toAccountDB, err := store.GetAccount(context.Background(), account2.ID)
+		require.NoError(t, err)
+		require.Equal(t, toAccount.Balance, toAccountDB.Balance)
 	}
 }
