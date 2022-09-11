@@ -54,6 +54,8 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
+var TxKey = struct{}{}
+
 // TransferTx performs a money transfer from one account to the other.
 // It creates a transfer record, add account entries, and update account's balance within a single database transaction
 func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
@@ -83,33 +85,21 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 			return err
 		}
 
-		// TODO: update accounts' balance
-		fromAccount, err := q.GetAccount(ctx, arg.FromAccountID)
-		if err != nil {
-			return err
-		}
-
-		newBalance := fromAccount.Balance - arg.Amount
-		if newBalance < 0 {
-			return fmt.Errorf("acount %v is lower than balace %v", arg.Amount, fromAccount.Balance)
-		}
-
-		result.FromAccount, err = q.UpdateAccount(ctx, UpdateAccountParams{
-			ID:      arg.FromAccountID,
-			Balance: newBalance,
+		// 用 SELECT ... FOR UPDATE 不行，要用 SELECT ... FOR　NO kEY UPDATE (类似 MySQL 的 LOCK IN SHARE MODE)，因为
+		// 1. INSERT 对 transfers 表插入数据会 对 accounts 表的对应数据上 S 锁，两个事务都上了 S 锁 （都插入了 transfers 数据）
+		// 因为他们之间有外键，为了避免插入 transfers 的事务还没 commit，别的事务把 account 的 ID 改了，造成数据一致性的问题
+		// 3. 两个执行到 SELECT ... FOR UPDATE，需要获取 X 锁，都需要对方释放 S 锁，造成死锁
+		result.FromAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID:     arg.FromAccountID,
+			Amount: -arg.Amount,
 		})
 		if err != nil {
 			return err
 		}
 
-		toAccount, err := q.GetAccount(ctx, arg.ToAccountID)
-		if err != nil {
-			return err
-		}
-
-		result.ToAccount, err = q.UpdateAccount(ctx, UpdateAccountParams{
-			ID:      arg.ToAccountID,
-			Balance: toAccount.Balance + arg.Amount,
+		result.ToAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID:     arg.ToAccountID,
+			Amount: arg.Amount,
 		})
 		if err != nil {
 			return err
