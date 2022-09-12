@@ -22,4 +22,7 @@ test:
 lint:
 	golangci-lint run ./...
 
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test lint
+server:
+	go run main.go
+
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test lint server
