@@ -89,18 +89,19 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 		// 1. INSERT 对 transfers 表插入数据会 对 accounts 表的对应数据上 S 锁，两个事务都上了 S 锁 （都插入了 transfers 数据）
 		// 因为他们之间有外键，为了避免插入 transfers 的事务还没 commit，别的事务把 account 的 ID 改了，造成数据一致性的问题
 		// 3. 两个执行到 SELECT ... FOR UPDATE，需要获取 X 锁，都需要对方释放 S 锁，造成死锁
-		result.FromAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-			ID:     arg.FromAccountID,
-			Amount: -arg.Amount,
-		})
-		if err != nil {
-			return err
+		//
+		// 以上还是有问题，试想：tx1 从 account1 转载到 account2，tx2 同时从 account2 转账到 account1:
+		// 1. tx1 update account1：减 balance
+		// 2. tx2 update account2: 减 balance
+		// 3. tx1 update account2: 加 balance，要等待 tx2 释放 account2 的 X 锁
+		// 4. tx2 update account1: 加 balance，要等待 tx1 释放 account1 的 X 锁，进入死锁
+		// 因此执行顺序很重要：如果 tx1 和 tx2 都先操作 account1 再操作 account2 就没问题了
+		// 比如此处可改为先更新 ID 小的 account
+		if arg.FromAccountID < arg.ToAccountID {
+			result.FromAccount, result.ToAccount, err = addMoney(ctx, q, arg.FromAccountID, -arg.Amount, arg.ToAccountID, arg.Amount)
+		} else {
+			result.ToAccount, result.FromAccount, err = addMoney(ctx, q, arg.ToAccountID, arg.Amount, arg.FromAccountID, -arg.Amount)
 		}
-
-		result.ToAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-			ID:     arg.ToAccountID,
-			Amount: arg.Amount,
-		})
 		if err != nil {
 			return err
 		}
@@ -109,4 +110,27 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 	})
 
 	return result, err
+}
+
+func addMoney(
+	ctx context.Context,
+	q *Queries,
+	accountID1 int64,
+	amount1 int64,
+	accountID2 int64,
+	amount2 int64,
+) (account1, account2 Account, err error) {
+	account1, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+		ID:     accountID1,
+		Amount: amount1,
+	})
+	if err != nil {
+		return
+	}
+
+	account2, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+		ID:     accountID2,
+		Amount: amount2,
+	})
+	return
 }
