@@ -10,7 +10,7 @@ import (
 
 type createAccountRequest struct {
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR"`
+	Currency string `json:"currency" binding:"required,oneof=USD EUR CAD"`
 }
 
 func (server *Server) createAccount(ctx *gin.Context) {
@@ -150,7 +150,7 @@ func (server *Server) deleteAccount(ctx *gin.Context) {
 
 	err = server.store.DeleteAccount(ctx, req.ID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, errResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errResponse(err))
 		return
 	}
 
