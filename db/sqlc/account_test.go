@@ -3,16 +3,19 @@ package db_test
 import (
 	"context"
 	"database/sql"
+	"testing"
+	"time"
+
 	db "github.com/boh5-learn/simplebank-learn-golang-backend/db/sqlc"
 	"github.com/boh5-learn/simplebank-learn-golang-backend/util"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func createRandomAccount(t *testing.T) db.Account {
+	user := createRandomUser(t)
+
 	arg := db.CreateAccountParams{
-		Owner:    util.RandomOwner(),
+		Owner:    user.Username,
 		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}
