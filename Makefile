@@ -25,4 +25,7 @@ lint:
 server:
 	go run main.go
 
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test lint server
+mock:
+	mockgen -package mockdb -destination db/mock/store.go github.com/boh5-learn/simplebank-learn-golang-backend/db/sqlc Store
+
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test lint server mock
