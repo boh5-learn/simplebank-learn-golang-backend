@@ -8,8 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/boh5-learn/simplebank-learn-golang-backend/api"
-
 	db "github.com/boh5-learn/simplebank-learn-golang-backend/db/sqlc"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -281,7 +279,7 @@ func TestCreateTransfer(t *testing.T) {
 			tc.buildStubs(store)
 
 			// start test server and send request
-			server := api.NewServer(store)
+			server := NewTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)

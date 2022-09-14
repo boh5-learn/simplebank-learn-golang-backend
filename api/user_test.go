@@ -11,8 +11,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/boh5-learn/simplebank-learn-golang-backend/api"
-
 	mockdb "github.com/boh5-learn/simplebank-learn-golang-backend/db/mock"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
@@ -192,7 +190,7 @@ func TestCreateUserAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := api.NewServer(store)
+			server := NewTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			// Marshal body data to JSON
