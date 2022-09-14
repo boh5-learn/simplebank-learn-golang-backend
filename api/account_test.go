@@ -143,7 +143,6 @@ func TestGetAccountAPI(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
@@ -286,6 +285,7 @@ func TestListAccountAPI(t *testing.T) {
 	}
 
 	type Query struct {
+		owner    string
 		pageID   int
 		pageSize int
 	}
@@ -300,6 +300,7 @@ func TestListAccountAPI(t *testing.T) {
 		{
 			name: "OK",
 			query: Query{
+				owner:    user.Username,
 				pageID:   1,
 				pageSize: n,
 			},
@@ -308,6 +309,7 @@ func TestListAccountAPI(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.ListAccountParams{
+					Owner:  user.Username,
 					Limit:  int32(n),
 					Offset: 0,
 				}
@@ -324,6 +326,7 @@ func TestListAccountAPI(t *testing.T) {
 		{
 			name: "List Empty",
 			query: Query{
+				owner:    user.Username,
 				pageID:   2,
 				pageSize: n,
 			},
@@ -332,6 +335,7 @@ func TestListAccountAPI(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.ListAccountParams{
+					Owner:  user.Username,
 					Limit:  int32(n),
 					Offset: int32(n),
 				}
@@ -348,6 +352,7 @@ func TestListAccountAPI(t *testing.T) {
 		{
 			name: "InternalError",
 			query: Query{
+				owner:    user.Username,
 				pageID:   1,
 				pageSize: n,
 			},
@@ -367,6 +372,7 @@ func TestListAccountAPI(t *testing.T) {
 		{
 			name: "InvalidPageID",
 			query: Query{
+				owner:    user.Username,
 				pageID:   -1,
 				pageSize: n,
 			},
@@ -385,6 +391,7 @@ func TestListAccountAPI(t *testing.T) {
 		{
 			name: "InvalidPageSize",
 			query: Query{
+				owner:    user.Username,
 				pageID:   1,
 				pageSize: 10000,
 			},
@@ -422,6 +429,7 @@ func TestListAccountAPI(t *testing.T) {
 
 			// Add query parameters to request URL
 			q := request.URL.Query()
+			q.Add("owner", tc.query.owner)
 			q.Add("page_id", strconv.Itoa(tc.query.pageID))
 			q.Add("page_size", strconv.Itoa(tc.query.pageSize))
 			request.URL.RawQuery = q.Encode()
