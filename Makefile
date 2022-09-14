@@ -1,5 +1,5 @@
 postgres:
-	docker container run --name postgres12 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d -v "$(CURDIR)/data/postgres12/data:/var/lib/postgresql/data" -p 5432:5432 postgres:12-alpine
+	docker container run --name postgres12 --network bank-network -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d -v "$(CURDIR)/data/postgres12/data:/var/lib/postgresql/data" -p 5432:5432 postgres:12-alpine
 
 createdb:
 	docker exec -it postgres12 createdb --username=root --owner=root simple_bank
