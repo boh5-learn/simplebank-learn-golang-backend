@@ -3,16 +3,26 @@ package api
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/boh5-learn/simplebank-learn-golang-backend/util"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/boh5-learn/simplebank-learn-golang-backend/token"
 
 	db "github.com/boh5-learn/simplebank-learn-golang-backend/db/sqlc"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
 )
+
+func init() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("currency", validCurrency)
+		if err != nil {
+			log.Fatal("register validation err:", err)
+		}
+	}
+}
 
 // Server serves HTTP requests for our banking service
 type Server struct {
@@ -30,6 +40,8 @@ func (server *Server) TokenMaker() token.Maker {
 	return server.tokenMaker
 }
 
+var mutex sync.Mutex
+
 // NewServer creates a new HTTP server and setup routing
 func NewServer(config util.Config, store db.Store) (*Server, error) {
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
@@ -42,12 +54,14 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		tokenMaker: tokenMaker,
 	}
 
+	mutex.Lock()
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		err := v.RegisterValidation("currency", validCurrency)
 		if err != nil {
 			log.Fatal("register validation err:", err)
 		}
 	}
+	mutex.Unlock()
 
 	server.setupRouter()
 
